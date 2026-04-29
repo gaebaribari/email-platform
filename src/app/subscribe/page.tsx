@@ -3,20 +3,25 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, X } from "lucide-react";
 import { subscribeSchema, type SubscribeFormData } from "@/lib/validation";
 
 export default function SubscribePage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SubscribeFormData>({
     resolver: zodResolver(subscribeSchema),
   });
+
+  const consent = watch("gdpr_consent");
 
   const onSubmit = async (data: SubscribeFormData) => {
     setError("");
@@ -117,18 +122,37 @@ export default function SubscribePage() {
               )}
             </div>
 
-            {/* GDPR 동의 */}
+            {/* 동의 체크박스 — 클릭 시 모달 띄우기 */}
             <div>
-              <label className="flex items-start gap-2 cursor-pointer">
+              <label className="flex items-start gap-2 cursor-pointer select-none">
                 <input
-                  {...register("gdpr_consent")}
                   type="checkbox"
-                  className="mt-0.5 rounded"
+                  className="mt-0.5 rounded cursor-pointer"
+                  checked={consent === true}
+                  onClick={(e) => {
+                    // 아직 동의 안 한 상태에서 클릭 → 모달 띄우고 체크는 막음
+                    if (!consent) {
+                      e.preventDefault();
+                      setModalOpen(true);
+                    }
+                    // 이미 동의한 상태에서 클릭 → 자연스럽게 해제됨 (재동의 필요)
+                  }}
+                  onChange={(e) => {
+                    // 해제 시에만 발동
+                    if (!e.target.checked) {
+                      setValue("gdpr_consent", false as never, { shouldValidate: true });
+                    }
+                  }}
                 />
                 <span className="text-xs text-muted-foreground leading-relaxed">
-                  개인정보 수집 및 이용에 동의합니다. 수집된 이메일은
-                  뉴스레터 발송 목적으로만 사용되며, 언제든지 구독을
-                  해지할 수 있습니다.
+                  <button
+                    type="button"
+                    className="text-foreground font-medium underline underline-offset-2 hover:text-primary"
+                    onClick={() => setModalOpen(true)}
+                  >
+                    개인정보 처리방침
+                  </button>
+                  을 읽고 동의합니다. (필수)
                 </span>
               </label>
               {errors.gdpr_consent && (
@@ -161,6 +185,96 @@ export default function SubscribePage() {
           </p>
         </div>
       </div>
+
+      {/* 개인정보 처리방침 모달 */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setModalOpen(false)}
+        >
+          <div
+            className="bg-background rounded-xl max-w-md w-full max-h-[80vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h2 className="text-base font-bold">개인정보 처리방침</h2>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 약관 본문 (스크롤) */}
+            <div className="p-5 overflow-y-auto flex-1 text-xs text-muted-foreground space-y-3 leading-relaxed">
+              <p>
+                <strong className="text-foreground">1. 수집 항목</strong>
+                <br />
+                이름, 이메일 주소
+              </p>
+              <p>
+                <strong className="text-foreground">2. 수집·이용 목적</strong>
+                <br />
+                뉴스레터 발송 및 마케팅 정보 제공
+              </p>
+              <p>
+                <strong className="text-foreground">3. 보관 기간</strong>
+                <br />
+                구독 해지 시까지. 해지 즉시 파기됩니다.
+              </p>
+              <p>
+                <strong className="text-foreground">4. 제3자 제공</strong>
+                <br />
+                이메일 발송 위탁(Sendgrid/Brevo) 외 어떠한 제3자에게도 제공하지 않습니다.
+              </p>
+              <p>
+                <strong className="text-foreground">5. 정보 주체의 권리</strong>
+                <br />
+                언제든지 열람, 정정, 삭제, 처리 정지, 구독 해지를 요구할 수 있습니다.
+                <br />
+                <span className="text-[11px]">
+                  (GDPR Art. 15-22, CCPA §1798.100-1798.135)
+                </span>
+              </p>
+              <p>
+                <strong className="text-foreground">6. CAN-SPAM Act 준수</strong>
+                <br />
+                모든 발송 메일 하단에 수신거부(unsubscribe) 링크가 포함됩니다.
+              </p>
+              <p>
+                <strong className="text-foreground">7. 문의</strong>
+                <br />
+                privacy@example.com
+              </p>
+            </div>
+
+            {/* 버튼 */}
+            <div className="p-4 border-t border-border flex gap-2">
+              <button
+                type="button"
+                className="flex-1 py-2 border border-border rounded-md text-sm hover:bg-muted/50 transition-colors"
+                onClick={() => setModalOpen(false)}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                onClick={() => {
+                  setValue("gdpr_consent", true as never, { shouldValidate: true });
+                  setModalOpen(false);
+                }}
+              >
+                동의하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,10 +3,12 @@ import mysql from "mysql2/promise";
 import * as schema from "./schema";
 
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  port: 3306,
-  database: "email_platform",
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  port: Number(process.env.DB_PORT) || 3306,
+  database: process.env.DB_NAME || "email_platform",
+  password: process.env.DB_PASSWORD || "",
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : undefined,
   waitForConnections: true,
   connectionLimit: 10,
 });

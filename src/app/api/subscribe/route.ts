@@ -3,6 +3,7 @@ import { db, dbReady } from "@/lib/db";
 import { subscribers } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { sendVerificationEmail } from "@/lib/email";
 
 // POST: 구독 신청 (더블옵트인 1단계 - pending 상태로 저장)
 export async function POST(req: NextRequest) {
@@ -47,8 +48,19 @@ export async function POST(req: NextRequest) {
       .set({ token: newToken, subscribed_at: new Date().toISOString() })
       .where(eq(subscribers.id, sub.id));
 
-    // 실제로는 여기서 인증 메일 발송 (Sendgrid/Brevo)
-    console.log(`[Double Opt-in] 인증 메일 재발송: ${email}, token: ${newToken}`);
+    // 인증 메일 재발송 (Brevo)
+    try {
+      const result = await sendVerificationEmail(
+        email.trim(),
+        sub.name || "",
+        newToken
+      );
+      console.log(
+        `[Double Opt-in] 인증 메일 재발송 ${result.sent ? "완료" : "스킵"}: ${email}`
+      );
+    } catch (err) {
+      console.error("[Brevo] 메일 재발송 실패:", err);
+    }
     return Response.json({ ok: true, message: "인증 메일이 재발송되었습니다" });
   }
 
@@ -66,10 +78,18 @@ export async function POST(req: NextRequest) {
     subscribed_at: now,
   });
 
-  // 실제로는 여기서 인증 메일 발송
-  // await sendVerificationEmail(email, token);
-  console.log(`[Double Opt-in] 인증 메일 발송: ${email}, token: ${token}`);
-  console.log(`  인증 링크: /subscribe/verify?token=${token}`);
+  // 인증 메일 발송 (Brevo)
+  try {
+    const result = await sendVerificationEmail(email.trim(), name?.trim() || "", token);
+    console.log(
+      `[Double Opt-in] 인증 메일 발송 ${result.sent ? "완료" : "스킵"}: ${email}`
+    );
+    if (!result.sent) {
+      console.log(`  (dev fallback) 인증 링크: ${result.verifyUrl}`);
+    }
+  } catch (err) {
+    console.error("[Brevo] 메일 발송 실패:", err);
+  }
 
   return Response.json({ ok: true, message: "인증 메일이 발송되었습니다" });
 }
