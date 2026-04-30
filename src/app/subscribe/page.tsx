@@ -53,11 +53,18 @@ export default function SubscribePage() {
           <p className="text-sm text-muted-foreground">
             입력하신 이메일로 인증 링크를 발송했습니다.
             <br />
-            링크를 클릭하시면 구독이 완료됩니다.
+            <strong className="text-foreground">30분 이내</strong>에 링크를 클릭하시면 구독이 완료됩니다.
           </p>
-          <p className="text-xs text-muted-foreground mt-4">
-            메일이 보이지 않으면 스팸함을 확인해주세요
-          </p>
+          <div className="mt-5 p-3 bg-muted/40 border border-border rounded-md text-center">
+            <p className="text-xs font-medium mb-1">메일이 안 보이나요?</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              무료 발송 환경을 사용 중이라 메일이{" "}
+              <strong className="text-foreground">스팸함</strong>으로 분류될 수
+              있습니다.
+              <br />
+              받은편지함에 없으면 스팸함도 꼭 확인해주세요.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -180,8 +187,10 @@ export default function SubscribePage() {
             </button>
           </form>
 
-          <p className="text-[10px] text-muted-foreground text-center mt-4">
+          <p className="text-[10px] text-muted-foreground text-center mt-4 leading-relaxed">
             구독 시 인증 메일이 발송됩니다 (더블옵트인)
+            <br />
+            메일이 스팸함으로 분류될 수 있으니 함께 확인해주세요
           </p>
         </div>
       </div>

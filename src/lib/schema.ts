@@ -18,6 +18,7 @@ export const subscribers = mysqlTable("subscribers", {
   list_id: int("list_id").notNull(),
   status: varchar("status", { length: 50 }).notNull().default("pending"), // pending | verified | unsubscribed
   token: varchar("token", { length: 255 }).notNull().default(""), // 더블옵트인 검증 토큰
+  token_expires_at: varchar("token_expires_at", { length: 50 }).notNull().default(""), // 토큰 만료(ISO)
   gdpr_consent: boolean("gdpr_consent").notNull().default(false),
   subscribed_at: varchar("subscribed_at", { length: 50 })
     .notNull()

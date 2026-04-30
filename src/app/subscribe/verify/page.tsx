@@ -59,7 +59,7 @@ function VerifyContent() {
           <>
             <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <h2 className="text-lg font-bold mb-2">인증 실패</h2>
-            <p className="text-sm text-muted-foreground">{message}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{message}</p>
           </>
         )}
 

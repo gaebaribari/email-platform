@@ -33,6 +33,7 @@ async function initTables() {
         list_id INT NOT NULL,
         status VARCHAR(50) NOT NULL DEFAULT 'pending',
         token VARCHAR(255) NOT NULL DEFAULT '',
+        token_expires_at VARCHAR(50) NOT NULL DEFAULT '',
         gdpr_consent BOOLEAN NOT NULL DEFAULT FALSE,
         subscribed_at VARCHAR(50) NOT NULL DEFAULT '',
         verified_at VARCHAR(50) NOT NULL DEFAULT '',
@@ -41,6 +42,15 @@ async function initTables() {
         INDEX idx_subscribers_token (token)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // 기존 테이블에 컬럼이 없으면 추가 (idempotent migration)
+    try {
+      await conn.execute(
+        `ALTER TABLE subscribers ADD COLUMN token_expires_at VARCHAR(50) NOT NULL DEFAULT ''`
+      );
+    } catch {
+      // 이미 존재
+    }
 
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS campaigns (
