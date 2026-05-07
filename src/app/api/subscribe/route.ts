@@ -1,133 +1,111 @@
 import { NextRequest } from "next/server";
-import { db, dbReady } from "@/lib/db";
-import { subscribers } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import { sendVerificationEmail } from "@/lib/email";
+import { signVerifyToken, verifyVerifyToken } from "@/lib/jwt";
+import { ensureAttributes, getBrevo, getDefaultFolderId } from "@/lib/brevo";
+import { BrevoError } from "@/lib/brevo-error";
 
-// POST: 구독 신청 (더블옵트인 1단계 - pending 상태로 저장)
+// 더블옵트인 1단계: JWT 발급 + 인증 메일 발송. Brevo Contact 생성은 인증 후 단계로 미룬다.
 export async function POST(req: NextRequest) {
-  await dbReady;
-  const body = await req.json();
-  const { email, name, list_id, gdpr_consent } = body;
+  const { email, name, list_id, gdpr_consent } = await req.json();
 
   if (!email?.trim()) {
     return Response.json({ error: "이메일은 필수입니다" }, { status: 400 });
   }
-
   if (!gdpr_consent) {
     return Response.json(
-      { error: "개인정보 수집에 동의해주세요" },
+      { error: "개인정보 수집 동의가 필요합니다" },
       { status: 400 }
     );
   }
 
-  // 중복 체크 (같은 리스트에 같은 이메일)
-  const existing = await db
-    .select()
-    .from(subscribers)
-    .where(
-      and(
-        eq(subscribers.email, email.trim()),
-        eq(subscribers.list_id, list_id || 1)
-      )
+  let targetListId: number;
+  try {
+    targetListId = await resolveListId(list_id);
+  } catch (err) {
+    console.error("[Brevo] 리스트 조회/생성 실패:", err);
+    return Response.json(
+      { error: BrevoError.message(err) || "리스트 처리 실패" },
+      { status: 500 }
     );
-
-  if (existing.length > 0) {
-    const sub = existing[0];
-    if (sub.status === "verified") {
-      return Response.json(
-        { error: "이미 구독 중인 이메일입니다" },
-        { status: 409 }
-      );
-    }
-    // pending 상태면 토큰 갱신
-    const newToken = randomUUID();
-    await db
-      .update(subscribers)
-      .set({ token: newToken, subscribed_at: new Date().toISOString() })
-      .where(eq(subscribers.id, sub.id));
-
-    // 인증 메일 재발송 (Brevo)
-    try {
-      const result = await sendVerificationEmail(
-        email.trim(),
-        sub.name || "",
-        newToken
-      );
-      console.log(
-        `[Double Opt-in] 인증 메일 재발송 ${result.sent ? "완료" : "스킵"}: ${email}`
-      );
-    } catch (err) {
-      console.error("[Brevo] 메일 재발송 실패:", err);
-    }
-    return Response.json({ ok: true, message: "인증 메일이 재발송되었습니다" });
   }
 
-  // 새 구독자 등록 (pending)
-  const token = randomUUID();
-  const now = new Date().toISOString();
-
-  await db.insert(subscribers).values({
-    email: email.trim(),
+  const token = signVerifyToken({
+    email: email.trim().toLowerCase(),
     name: name?.trim() || "",
-    list_id: list_id || 1,
-    status: "pending",
-    token,
-    gdpr_consent: true,
-    subscribed_at: now,
+    list_id: targetListId,
+    gdpr_consent: Boolean(gdpr_consent),
   });
 
-  // 인증 메일 발송 (Brevo)
   try {
-    const result = await sendVerificationEmail(email.trim(), name?.trim() || "", token);
-    console.log(
-      `[Double Opt-in] 인증 메일 발송 ${result.sent ? "완료" : "스킵"}: ${email}`
+    const result = await sendVerificationEmail(
+      email.trim(),
+      name?.trim() || "",
+      token
     );
-    if (!result.sent) {
-      console.log(`  (dev fallback) 인증 링크: ${result.verifyUrl}`);
-    }
+    console.log(
+      `[Double Opt-in] 인증 메일 ${result.sent ? "발송" : "스킵"}: ${email}`
+    );
   } catch (err) {
     console.error("[Brevo] 메일 발송 실패:", err);
+    return Response.json(
+      { error: "메일 발송에 실패했습니다" },
+      { status: 500 }
+    );
   }
 
   return Response.json({ ok: true, message: "인증 메일이 발송되었습니다" });
 }
 
-// GET: 이메일 인증 (더블옵트인 2단계 - verified로 변경)
+// 더블옵트인 2단계: JWT 검증 → Brevo Contact 생성/업데이트하여 listIds에 추가
 export async function GET(req: NextRequest) {
-  await dbReady;
   const token = req.nextUrl.searchParams.get("token");
-
   if (!token) {
-    return Response.json({ error: "토큰이 없습니다" }, { status: 400 });
+    return Response.json({ error: "토큰이 필요합니다" }, { status: 400 });
   }
 
-  const rows = await db
-    .select()
-    .from(subscribers)
-    .where(eq(subscribers.token, token));
-
-  if (rows.length === 0) {
+  const payload = verifyVerifyToken(token);
+  if (!payload) {
     return Response.json(
-      { error: "유효하지 않은 인증 링크입니다" },
-      { status: 404 }
+      { error: "유효하지 않거나 만료된 토큰입니다" },
+      { status: 400 }
     );
   }
 
-  const sub = rows[0];
-  if (sub.status === "verified") {
-    return Response.json({ ok: true, message: "이미 인증된 이메일입니다" });
+  try {
+    await ensureAttributes();
+    const brevo = getBrevo();
+    await brevo.contacts.createContact({
+      email: payload.email,
+      listIds: [payload.list_id],
+      updateEnabled: true,
+      attributes: {
+        NAME: payload.name,
+        GDPR_CONSENT: payload.gdpr_consent,
+        VERIFIED_AT: new Date().toISOString().slice(0, 10),
+      },
+    });
+  } catch (err) {
+    console.error("[Brevo] Contact 생성/업데이트 실패:", err);
+    return Response.json(
+      { error: BrevoError.message(err) || "구독 처리에 실패했습니다" },
+      { status: 500 }
+    );
   }
 
-  await db
-    .update(subscribers)
-    .set({
-      status: "verified",
-      verified_at: new Date().toISOString(),
-      token: "", // 토큰 무효화
-    })
-    .where(eq(subscribers.id, sub.id));
-
   return Response.json({ ok: true, message: "이메일 인증이 완료되었습니다" });
+}
+
+// 요청한 list_id가 없거나 0이면 첫 번째 리스트(없으면 자동 생성)에 매핑
+async function resolveListId(requested: unknown): Promise<number> {
+  if (typeof requested === "number" && requested > 0) return requested;
+  const brevo = getBrevo();
+  const lists = await brevo.contacts.getLists({ limit: 1, offset: 0 });
+  const first = lists.lists?.[0];
+  if (first?.id) return first.id;
+  const folderId = await getDefaultFolderId();
+  const created = await brevo.contacts.createList({
+    folderId,
+    name: "Default Newsletter",
+  });
+  return created.id;
 }

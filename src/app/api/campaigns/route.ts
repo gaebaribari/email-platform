@@ -1,65 +1,111 @@
 import { NextRequest } from "next/server";
-import { db, dbReady } from "@/lib/db";
-import { campaigns, email_lists } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { getBrevo, SENDER } from "@/lib/brevo";
+import { BrevoError } from "@/lib/brevo-error";
+import { rewriteTemplateVarsForBrevo } from "@/lib/template";
 
 export async function GET() {
-  await dbReady;
-  const rows = await db.select().from(campaigns).orderBy(campaigns.id);
+  try {
+    const brevo = getBrevo();
+    const res = await brevo.emailCampaigns.getEmailCampaigns({
+      type: "classic",
+      limit: 50,
+      offset: 0,
+    });
+    const lists = await brevo.contacts.getLists({ limit: 50, offset: 0 });
+    const listMap = new Map((lists.lists ?? []).map((l) => [l.id, l.name]));
 
-  // 리스트명 조인
-  const lists = await db.select().from(email_lists);
-  const listMap = new Map(lists.map((l) => [l.id, l.name]));
-
-  return Response.json(
-    rows.map((c) => ({ ...c, listName: listMap.get(c.list_id) || "" }))
-  );
+    return Response.json(
+      (res.campaigns ?? []).map((c) => {
+        const listId = c.recipients?.lists?.[0] ?? 0;
+        return {
+          id: c.id,
+          name: c.name,
+          subject: c.subject ?? "",
+          list_id: listId,
+          template: c.htmlContent ?? "",
+          status: mapStatus(c.status),
+          scheduled_at: c.scheduledAt ?? "",
+          sent_at: c.sentDate ?? "",
+          sent_count: c.statistics?.globalStats?.sent ?? 0,
+          created_at: c.createdAt,
+          listName: listMap.get(listId) ?? "",
+        };
+      })
+    );
+  } catch (err) {
+    return Response.json({ error: BrevoError.message(err) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  await dbReady;
   const { name, subject, list_id, template, scheduled_at } = await req.json();
-
   if (!name?.trim()) {
     return Response.json({ error: "캠페인명 필수" }, { status: 400 });
   }
-
-  const result = await db.insert(campaigns).values({
-    name: name.trim(),
-    subject: subject?.trim() || "",
-    list_id: list_id || 1,
-    template: template || "",
-    status: scheduled_at ? "scheduled" : "draft",
-    scheduled_at: scheduled_at || "",
-    created_at: new Date().toISOString(),
-  });
-
-  return Response.json({ id: result[0].insertId });
+  if (!list_id) {
+    return Response.json({ error: "리스트 선택 필수" }, { status: 400 });
+  }
+  try {
+    const brevo = getBrevo();
+    const created = await brevo.emailCampaigns.createEmailCampaign({
+      name: name.trim(),
+      subject: subject?.trim() || name.trim(),
+      htmlContent: rewriteTemplateVarsForBrevo(template || ""),
+      sender: SENDER,
+      recipients: { listIds: [Number(list_id)] },
+      ...(scheduled_at ? { scheduledAt: toIsoZ(scheduled_at) } : {}),
+    });
+    return Response.json({ id: created.id });
+  } catch (err) {
+    return Response.json({ error: BrevoError.message(err) }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  await dbReady;
-  const { id, ...fields } = await req.json();
-
+  const { id, name, subject, list_id, template, scheduled_at } = await req.json();
   if (!id) return Response.json({ error: "id 필수" }, { status: 400 });
-
-  const updateData: Record<string, string | number> = {};
-  if (fields.name !== undefined) updateData.name = fields.name.trim();
-  if (fields.subject !== undefined) updateData.subject = fields.subject.trim();
-  if (fields.list_id !== undefined) updateData.list_id = fields.list_id;
-  if (fields.template !== undefined) updateData.template = fields.template;
-  if (fields.status !== undefined) updateData.status = fields.status;
-  if (fields.scheduled_at !== undefined) updateData.scheduled_at = fields.scheduled_at;
-
-  await db.update(campaigns).set(updateData).where(eq(campaigns.id, id));
-  return Response.json({ ok: true });
+  try {
+    const brevo = getBrevo();
+    await brevo.emailCampaigns.updateEmailCampaign({
+      campaignId: Number(id),
+      ...(name !== undefined ? { name: name.trim() } : {}),
+      ...(subject !== undefined ? { subject: subject.trim() } : {}),
+      ...(template !== undefined
+        ? { htmlContent: rewriteTemplateVarsForBrevo(template) }
+        : {}),
+      ...(list_id !== undefined
+        ? { recipients: { listIds: [Number(list_id)] } }
+        : {}),
+      ...(scheduled_at ? { scheduledAt: toIsoZ(scheduled_at) } : {}),
+    });
+    return Response.json({ ok: true });
+  } catch (err) {
+    return Response.json({ error: BrevoError.message(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
-  await dbReady;
   const { id } = await req.json();
   if (!id) return Response.json({ error: "id 필수" }, { status: 400 });
+  try {
+    const brevo = getBrevo();
+    await brevo.emailCampaigns.deleteEmailCampaign({ campaignId: Number(id) });
+    return Response.json({ ok: true });
+  } catch (err) {
+    return Response.json({ error: BrevoError.message(err) }, { status: 500 });
+  }
+}
 
-  await db.delete(campaigns).where(eq(campaigns.id, id));
-  return Response.json({ ok: true });
+function mapStatus(s: string | undefined): "draft" | "scheduled" | "sent" {
+  if (s === "sent") return "sent";
+  if (s === "queued" || s === "in_process") return "scheduled";
+  return "draft";
+}
+
+// "2026-05-07T14:30" 같은 datetime-local 입력을 Brevo가 요구하는 ISO Z 형식으로 변환
+function toIsoZ(value: string): string {
+  if (!value) return value;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toISOString();
 }

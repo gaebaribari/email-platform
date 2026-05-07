@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, Upload, Download, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Search, Trash2, Upload, Download, CheckCircle, XCircle } from "lucide-react";
 import type { Subscriber, EmailList } from "@/lib/types";
 
+// Brevo Contacts 기준 — 인증 전 구독자(pending)는 Brevo에 존재하지 않으므로 status는 두 가지뿐.
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   verified: { label: "인증완료", color: "text-success bg-success/10", icon: CheckCircle },
-  pending: { label: "인증대기", color: "text-warning bg-warning/10", icon: Clock },
   unsubscribed: { label: "수신거부", color: "text-destructive bg-destructive/10", icon: XCircle },
 };
 
@@ -166,7 +166,6 @@ export default function SubscribersPage() {
         >
           <option value="">전체 상태</option>
           <option value="verified">인증완료</option>
-          <option value="pending">인증대기</option>
           <option value="unsubscribed">수신거부</option>
         </select>
       </div>
@@ -201,7 +200,7 @@ export default function SubscribersPage() {
             </thead>
             <tbody>
               {subscribers.map((sub) => {
-                const config = STATUS_CONFIG[sub.status] || STATUS_CONFIG.pending;
+                const config = STATUS_CONFIG[sub.status] || STATUS_CONFIG.verified;
                 const Icon = config.icon;
                 return (
                   <tr

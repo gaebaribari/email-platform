@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, List, Send, CheckCircle } from "lucide-react";
+import { Users, List, Send, CheckCircle, XCircle } from "lucide-react";
 
 interface DashboardStats {
   totalSubscribers: number;
   verifiedSubscribers: number;
-  pendingSubscribers: number;
+  unsubscribedCount: number;
   totalLists: number;
   totalCampaigns: number;
   sentCampaigns: number;
@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalSubscribers: 0,
     verifiedSubscribers: 0,
-    pendingSubscribers: 0,
+    unsubscribedCount: 0,
     totalLists: 0,
     totalCampaigns: 0,
     sentCampaigns: 0,
@@ -38,8 +38,8 @@ export default function AdminDashboard() {
         verifiedSubscribers: subs.filter(
           (s: { status: string }) => s.status === "verified"
         ).length,
-        pendingSubscribers: subs.filter(
-          (s: { status: string }) => s.status === "pending"
+        unsubscribedCount: subs.filter(
+          (s: { status: string }) => s.status === "unsubscribed"
         ).length,
         totalLists: lists.length,
         totalCampaigns: camps.length,
@@ -65,10 +65,10 @@ export default function AdminDashboard() {
       color: "text-success",
     },
     {
-      label: "인증 대기",
-      value: stats.pendingSubscribers,
-      icon: Users,
-      color: "text-warning",
+      label: "수신 거부",
+      value: stats.unsubscribedCount,
+      icon: XCircle,
+      color: "text-destructive",
     },
     {
       label: "이메일 리스트",
