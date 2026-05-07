@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 const SECRET = process.env.JWT_SECRET || "dev-only-jwt-secret-do-not-use-in-prod";
 const ISSUER = "email-platform";
-const VERIFY_TOKEN_TTL = "24h";
+const VERIFY_TOKEN_TTL = "30m";
 
 export interface VerifyTokenPayload {
   email: string;

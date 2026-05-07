@@ -24,7 +24,7 @@ export async function sendVerificationEmail(
       </p>
       <p style="color: #6b7280; line-height: 1.6; margin: 0 0 20px;">
         뉴스레터 구독 신청이 접수되었습니다. 아래 버튼을 클릭하여 이메일 인증을 완료해주세요.
-        <br /><span style="font-size: 12px;">이 링크는 24시간 후 만료됩니다.</span>
+        <br /><span style="font-size: 12px;">이 링크는 30분 후 만료됩니다.</span>
       </p>
       <a href="${verifyUrl}" style="display: inline-block; padding: 12px 28px; background: #18181b; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">
         구독 인증하기

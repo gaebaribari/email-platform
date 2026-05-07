@@ -50,7 +50,7 @@ POST /api/subscribe ────────────────────
             gdpr_consent}                  │     payload: {email, name,
        │                                    │              list_id,
        ▼                                    │              gdpr_consent}
-  signVerifyToken(payload)                 │     exp: 24h
+  signVerifyToken(payload)                 │     exp: 30m
        │                                    │     issuer: "email-platform"
        ▼                                    │
   Brevo Transactional API로 메일 발송      │  ② 인증 메일에는 토큰만 들어감
@@ -80,7 +80,7 @@ GET /api/subscribe?token=<JWT> ───────────┘
 
 1. **인증 안 된 이메일은 Brevo에 들어가지 않는다.** Brevo의 contact 한도(무료 플랜 300/일 발송, 컨택트 무제한이지만 정리된 상태 유지)가 깨끗해진다.
 2. **서버는 stateless.** "토큰 발급 → 어딘가에 저장 → 클릭 시 조회"가 아니라 "토큰 자체에 정보를 서명해서 넣는다." 검증할 때 별도 조회가 필요 없다.
-3. **만료를 토큰이 강제한다.** `exp: 24h`만 박아두면 따로 cron으로 stale pending 정리할 필요가 없다.
+3. **만료를 토큰이 강제한다.** `exp: 30m`만 박아두면 따로 cron으로 stale pending 정리할 필요가 없다. (피싱 위험 최소화 목적으로 짧게 둠)
 
 ---
 
@@ -123,7 +123,7 @@ src/lib/
   brevo.ts            BrevoClient 싱글톤, sender, 폴더/attribute 보장
   brevo-error.ts      BrevoError → 사용자 메시지 추출
   email.ts            sendVerificationEmail (트랜잭셔널)
-  jwt.ts              signVerifyToken / verifyVerifyToken (24h)
+  jwt.ts              signVerifyToken / verifyVerifyToken (30m)
   template.ts         에디터 표기법 → Brevo 표기법 변환
   types.ts            UI에서 쓰는 도메인 타입
   validation.ts       zod 스키마 (구독 폼, 리스트, 캠페인)
@@ -164,7 +164,7 @@ src/app/
 - **콘텐츠 관리 분리.** 마케팅팀이 Brevo 대시보드에서도 직접 손댈 수 있음.
 
 ### 우리가 포기한 것
-- **"pending" 상태가 사라짐.** 인증 전에는 어디에도 저장 안 되므로 "인증 안 한 사용자 N명" 같은 통계 불가. (대신 24h 후 자동 만료)
+- **"pending" 상태가 사라짐.** 인증 전에는 어디에도 저장 안 되므로 "인증 안 한 사용자 N명" 같은 통계 불가. (대신 30분 후 자동 만료)
 - **Brevo 응답 latency.** 모든 admin 페이지 조회가 외부 API call. 캐싱 안 함.
 - **Brevo Lists에 description 없음.** UI상으로는 빈 값.
 - **벤더 락인.** Brevo가 망하거나 가격 정책 바뀌면 마이그레이션 비용 발생.

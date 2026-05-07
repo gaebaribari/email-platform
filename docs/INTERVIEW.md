@@ -29,14 +29,14 @@
 **핵심 답:**
 - DB의 token 컬럼 방식의 전제는 "token으로 사용자 행을 빠르게 조회할 수 있다"이다. 그런데 우리 데이터스토어인 Brevo는 **attribute 값으로 contact를 검색하는 API가 약하다.** email/contact_id로만 빠르게 조회된다.
 - 그래서 token으로 검색하지 말고, **token 자체가 정보를 담고 있게** 하면 조회 자체가 필요 없어진다. 그게 JWT.
-- 부수효과로 (1) 만료시간(`exp: 24h`)이 자동 강제, (2) issuer 검증으로 위변조 차단, (3) 서버는 완전히 stateless해진다.
+- 부수효과로 (1) 만료시간(`exp: 30m`)이 자동 강제, (2) issuer 검증으로 위변조 차단, (3) 서버는 완전히 stateless해진다.
 
 **구체 코드:**
 ```ts
 // src/lib/jwt.ts
 export function signVerifyToken(payload: VerifyTokenPayload): string {
   return jwt.sign(payload, SECRET, {
-    expiresIn: "24h",
+    expiresIn: "30m",
     issuer: "email-platform",
   });
 }
@@ -48,7 +48,7 @@ export function signVerifyToken(payload: VerifyTokenPayload): string {
 - 인증 클릭 시점에야 Brevo Contact을 만든다 → 미인증 이메일이 Brevo에 들어가지 않음.
 
 **약한 점도 솔직하게:**
-- JWT는 **취소(revoke)가 어렵다.** 만료 전에는 무효화 못 함. 우리 케이스는 24시간이라 영향 작음.
+- JWT는 **취소(revoke)가 어렵다.** 만료 전에는 무효화 못 함. 우리 케이스는 30분이라 영향 작음.
 - 비밀키 유출 시 모든 토큰이 위험. → `JWT_SECRET` 환경변수로 분리 + 운영 시 rotation 가능.
 
 ---
@@ -67,7 +67,7 @@ export function signVerifyToken(payload: VerifyTokenPayload): string {
 ### Q4. Brevo Contact의 status를 어떻게 표현했어요? Brevo에는 verified/pending/unsubscribed 같은 상태 필드가 없을 텐데.
 
 **핵심 답:**
-- **pending은 만들지 않았다.** 인증 안 된 사용자는 Brevo에 contact 자체가 안 들어간다. 그 상태는 JWT 안에만 존재하고 24시간 후 사라진다.
+- **pending은 만들지 않았다.** 인증 안 된 사용자는 Brevo에 contact 자체가 안 들어간다. 그 상태는 JWT 안에만 존재하고 30분 후 사라진다.
 - **verified vs unsubscribed는 `emailBlacklisted` 플래그로 구분.** Brevo 내장 필드를 그대로 활용.
 - `src/lib/brevo.ts`의 `statusOf()` 한 함수가 contact를 받아서 둘 중 하나로 매핑한다.
 
@@ -108,7 +108,7 @@ export function signVerifyToken(payload: VerifyTokenPayload): string {
 2. **JWT 비밀키 분리** — 코드에 넣지 않고 `JWT_SECRET` env로.
 3. **GDPR 모달** — 동의 체크박스가 "텍스트 옆 체크박스"가 아니라, 클릭하면 **개인정보 처리방침 모달이 뜨고 거기서 명시적으로 "동의하기" 버튼을 눌러야** 체크된다. 다크 패턴 회피.
 4. **HTML escape** — 인증 메일에 사용자가 입력한 이름이 들어갈 때 `escapeHtml()` 적용해서 XSS 차단.
-5. **인증 메일 만료** — JWT `exp: 24h`로 만료된 토큰 자동 거부.
+5. **인증 메일 만료** — JWT `exp: 30m`로 만료된 토큰 자동 거부.
 
 **더 했으면 좋았을 것:**
 - Rate limiting (같은 IP에서 1분에 N회 이상 구독 시도 차단). `@upstash/ratelimit` 검토 중.
