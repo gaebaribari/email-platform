@@ -1,8 +1,16 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET || "dev-only-jwt-secret-do-not-use-in-prod";
 const ISSUER = "email-platform";
 const VERIFY_TOKEN_TTL = "30m";
+
+function getSecret(): string {
+  const fromEnv = process.env.JWT_SECRET;
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET must be set in production");
+  }
+  return "dev-only-jwt-secret-do-not-use-in-prod";
+}
 
 export interface VerifyTokenPayload {
   email: string;
@@ -12,7 +20,7 @@ export interface VerifyTokenPayload {
 }
 
 export function signVerifyToken(payload: VerifyTokenPayload): string {
-  return jwt.sign(payload, SECRET, {
+  return jwt.sign(payload, getSecret(), {
     expiresIn: VERIFY_TOKEN_TTL,
     issuer: ISSUER,
   });
@@ -20,7 +28,7 @@ export function signVerifyToken(payload: VerifyTokenPayload): string {
 
 export function verifyVerifyToken(token: string): VerifyTokenPayload | null {
   try {
-    const decoded = jwt.verify(token, SECRET, { issuer: ISSUER }) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, getSecret(), { issuer: ISSUER }) as jwt.JwtPayload;
     if (
       typeof decoded.email !== "string" ||
       typeof decoded.list_id !== "number"
