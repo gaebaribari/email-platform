@@ -1,15 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, X, PartyPopper } from "lucide-react";
 import { subscribeSchema, type SubscribeFormData } from "@/lib/validation";
 
 export default function SubscribePage() {
   const [submitted, setSubmitted] = useState(false);
+  const [verified, setVerified] = useState(false);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+
+  // 메일 발송 후, 다른 탭의 verify 페이지에서 인증이 끝나면 신호를 받아 화면을 갱신한다.
+  useEffect(() => {
+    if (!submitted || verified) return;
+    let ch: BroadcastChannel | null = null;
+    try {
+      ch = new BroadcastChannel("email-platform-verified");
+      ch.onmessage = (e) => {
+        if (e.data?.verified) setVerified(true);
+      };
+    } catch {
+      // BroadcastChannel 미지원 브라우저는 폴백 없이 그대로 둠
+    }
+    return () => {
+      ch?.close();
+    };
+  }, [submitted, verified]);
 
   const {
     register,
@@ -44,6 +62,20 @@ export default function SubscribePage() {
     }
   };
 
+  if (verified) {
+    return (
+      <div className="min-h-full flex items-center justify-center bg-muted/30 px-4">
+        <div className="max-w-sm w-full text-center">
+          <PartyPopper className="w-12 h-12 text-success mx-auto mb-4" />
+          <h2 className="text-lg font-bold mb-2">구독이 완료되었습니다!</h2>
+          <p className="text-sm text-muted-foreground">
+            인증이 확인되었어요. 이제부터 뉴스레터를 받아보실 수 있습니다.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div className="min-h-full flex items-center justify-center bg-muted/30 px-4">
@@ -65,6 +97,9 @@ export default function SubscribePage() {
               받은편지함에 없으면 스팸함도 꼭 확인해주세요.
             </p>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-4">
+            인증 후 이 페이지가 자동으로 갱신됩니다 (같은 브라우저 한정)
+          </p>
         </div>
       </div>
     );

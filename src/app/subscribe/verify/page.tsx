@@ -24,6 +24,14 @@ function VerifyContent() {
         if (res.ok) {
           setStatus("success");
           setMessage("이메일 인증이 완료되었습니다!");
+          // 같은 브라우저의 다른 탭(폼 페이지)에 인증 완료 신호 전달
+          try {
+            const ch = new BroadcastChannel("email-platform-verified");
+            ch.postMessage({ verified: true });
+            ch.close();
+          } catch {
+            // BroadcastChannel 미지원 브라우저는 그냥 무시
+          }
         } else {
           setStatus("error");
           setMessage(data.error || "인증에 실패했습니다");
