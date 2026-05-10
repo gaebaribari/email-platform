@@ -2,6 +2,10 @@
 
 > 자체 DB 없이 **Brevo**를 데이터스토어 겸 발송 인프라로 사용하고, 더블옵트인 인증을 **JWT**로 stateless하게 처리한 뉴스레터 플랫폼. 개인 학습용 재구현 프로젝트.
 
+## 라이브 데모
+
+- https://email-platform-mu.vercel.app
+
 ## 핵심 포인트
 
 - **외부 DB 0개.** 모든 영속 상태는 Brevo Contacts/Lists/Email Campaigns에. 1인 운영 부담 최소화.
