@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mail, Users, List, Send } from "lucide-react";
+import { Mail, Users } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "대시보드", icon: Mail },
-  { href: "/admin/lists", label: "이메일 리스트", icon: List },
   { href: "/admin/subscribers", label: "구독자 관리", icon: Users },
-  { href: "/admin/campaigns", label: "캠페인", icon: Send },
 ];
 
 export function AdminSidebar() {

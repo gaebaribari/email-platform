@@ -37,7 +37,7 @@ export default function Home() {
             <div>
               <p className="text-sm font-medium">관리자 대시보드</p>
               <p className="text-xs text-muted-foreground">
-                구독자, 리스트, 캠페인 관리
+                구독자 관리 및 통계 확인
               </p>
             </div>
           </Link>

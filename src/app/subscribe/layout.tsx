@@ -1,16 +1,16 @@
 import { HomeLink } from "@/components/home-link";
 
-export default function AdminLayout({
+export default function SubscribeLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <main className="h-full overflow-y-auto">
-      <header className="px-6 py-4 border-b border-border">
+    <div className="relative h-full">
+      <header className="absolute top-4 left-5 z-10">
         <HomeLink />
       </header>
       {children}
-    </main>
+    </div>
   );
 }
