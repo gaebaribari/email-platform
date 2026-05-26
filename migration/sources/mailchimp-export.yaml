@@ -1,0 +1,28 @@
+# mailchimp-export: 타 뉴스레터 툴(Mailchimp)에서 내보낸 audience export.
+# 이름이 First/Last로 쪼개져 있고, 불필요한 컬럼(MEMBER_RATING 등)이 섞여 있다.
+# 같은 타깃 모델로 가지만 원천 구조가 legacy-crm과 완전히 다르다 → 이종 데이터.
+
+name: mailchimp-export
+label: Mailchimp Export
+description: 타 뉴스레터 툴 audience export. 이름이 First/Last 분리, 잡(junk) 컬럼 혼재.
+
+required_columns:
+  - Email Address
+
+fields:
+  email:
+    from: ["Email Address", Email]
+  name:
+    # join: 나열한 컬럼들을 공백으로 이어붙인다 (First + Last → 단일 name)
+    join: ["First Name", "Last Name"]
+  country:
+    from: [Country, CC]
+    normalize: country
+
+normalize:
+  country:
+    # Mailchimp는 ISO 코드를 쓰지만 일부 행이 자유입력으로 오염돼 있다.
+    KR: [KR, 한국, "Korea, Republic of", "South Korea"]
+    US: [US, USA, "United States"]
+    JP: [JP, Japan]
+    CN: [CN, China]

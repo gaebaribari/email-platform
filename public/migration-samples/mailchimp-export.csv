@@ -1,0 +1,7 @@
+Email Address,First Name,Last Name,Country,MEMBER_RATING
+alice@example.com,Alice,Park,KR,4
+bob@example.com,Bob,,US,3
+chen@example.com,Chen,Li,China,5
+,Empty,Name,KR,2
+hans@example.com,Hans,Müller,DE,5
+klaus@example.com,Klaus,Schmidt,DE,4

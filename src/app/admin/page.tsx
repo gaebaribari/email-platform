@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Users,
   CheckCircle,
   XCircle,
   Search,
   Trash2,
-  Upload,
   Download,
 } from "lucide-react";
+import { ImportButton } from "@/components/import-button";
 import type { Subscriber } from "@/lib/types";
 
 const STATUS_CONFIG: Record<
@@ -32,7 +32,6 @@ export default function AdminDashboard() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     const params = new URLSearchParams();
@@ -57,36 +56,7 @@ export default function AdminDashboard() {
     fetchData();
   };
 
-  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const text = await file.text();
-    const { default: Papa } = await import("papaparse");
-    const result = Papa.parse(text, { header: true, skipEmptyLines: true });
-
-    const mapped = (result.data as Record<string, string>[]).map((row) => ({
-      email: row.email || row.Email || row["이메일"] || row.EMAIL || "",
-      name: row.name || row.Name || row["이름"] || row.NAME || "",
-    }));
-
-    const valid = mapped.filter((s) => s.email.includes("@"));
-    if (valid.length === 0) {
-      alert("유효한 이메일이 없습니다");
-      return;
-    }
-
-    const res = await fetch("/api/subscribers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subscribers: valid }),
-    });
-
-    const data = await res.json();
-    alert(`추가: ${data.added}명, 중복 건너뜀: ${data.duplicates}명`);
-    fetchData();
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  // CSV 가져오기는 검증·정규화가 포함된 데이터 마이그레이션 파이프라인(/admin/migration)으로 일원화했다.
 
   const handleExport = () => {
     const headers = ["email", "name", "status", "subscribed_at", "verified_at"];
@@ -163,20 +133,7 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleCSVImport}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-sm rounded-md hover:bg-muted"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            CSV 가져오기
-          </button>
+          <ImportButton onComplete={fetchData} />
           <button
             onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-sm rounded-md hover:bg-muted"
