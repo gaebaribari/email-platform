@@ -34,6 +34,7 @@ export interface TargetRecord {
   email: string;
   name: string;
   country: string; // 표준 국가코드 또는 "" / "UNKNOWN"
+  status: string; // "verified" | "unsubscribed" | "" (원천에 상태 컬럼이 없으면 빈값)
 }
 
 /** 변환 단계에서 표준화하지 못한 원천 값 1건 */

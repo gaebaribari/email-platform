@@ -25,10 +25,11 @@ interface IncomingRecord {
   email: string;
   name: string;
   country?: string;
+  status?: string;
 }
 
 // 마이그레이션으로 추가된 레코드를 데모 목록에 병합한다.
-// 상태는 전부 인증완료가 아니라 일부를 수신거부로 섞어 현실감을 준다.
+// 원천에 상태 정보가 있으면 그대로, 없으면 일부를 수신거부로 섞어 현실감을 준다.
 export function addDemoSubscribers(records: IncomingRecord[]): number {
   const existing = getDemoSubscribers();
   const byEmail = new Map(existing.map((s) => [s.email.toLowerCase(), s]));
@@ -38,9 +39,13 @@ export function addDemoSubscribers(records: IncomingRecord[]): number {
   records.forEach((r, i) => {
     const email = r.email.trim();
     if (!email) return;
-    // 약 1/4 을 수신거부로 (결정적이라 매번 동일하게 재현)
+    // 매핑된 실제 상태가 있으면 사용, 없으면 약 1/4 을 수신거부로 합성(결정적)
     const status: Subscriber["status"] =
-      i % 4 === 3 ? "unsubscribed" : "verified";
+      r.status === "verified" || r.status === "unsubscribed"
+        ? r.status
+        : i % 4 === 3
+          ? "unsubscribed"
+          : "verified";
     const prev = byEmail.get(email.toLowerCase());
     byEmail.set(email.toLowerCase(), {
       id: prev?.id ?? nextId++,

@@ -25,6 +25,9 @@ fields:
   country:
     from: [Country, 국가, 거주국]
     normalize: country
+  status:
+    from: [status, 상태, Status, 구독상태]
+    normalize: status
 
 # 값 정규화 사전: 표준값 <- [동의어 / 약어 / 오타 ...]
 # 매칭은 trim + 소문자 기준. 여기에 없는 값은 '예외'로 집계된다 (포인트 ③).
@@ -34,3 +37,8 @@ normalize:
     US: [미국, US, USA, "United States", "U.S.", america]
     JP: [일본, JP, Japan, 니혼]
     CN: [중국, CN, China, 중국본토]
+  status:
+    # 우리 모델의 상태는 verified / unsubscribed 둘뿐 (미인증 pending 은 저장 대상 아님).
+    # 다양한 원천 표기를 두 버킷으로 정규화한다.
+    verified: [active, verified, subscribed, 구독, 구독중, 인증완료, "true", "1", y, yes]
+    unsubscribed: [unsubscribed, inactive, pending, 수신거부, 해지, 미인증, "false", "0", n, no]

@@ -39,6 +39,7 @@ const targetSchema = z.object({
   email: z.string().email(),
   name: z.string(),
   country: z.string(),
+  status: z.string(),
 });
 
 export interface PostResult {

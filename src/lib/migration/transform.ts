@@ -11,10 +11,11 @@ import type {
 /** 동의어 → 표준값 역인덱스를 만든다 (trim + 소문자 매칭) */
 function buildLookup(dict: NormalizeDict): Map<string, string> {
   const lookup = new Map<string, string>();
+  // YAML이 true/false/숫자를 문자열이 아닌 타입으로 파싱할 수 있으므로 String()으로 방어.
   for (const [canonical, synonyms] of Object.entries(dict)) {
     lookup.set(canonical.trim().toLowerCase(), canonical);
-    for (const syn of synonyms) {
-      lookup.set(syn.trim().toLowerCase(), canonical);
+    for (const syn of synonyms ?? []) {
+      lookup.set(String(syn).trim().toLowerCase(), canonical);
     }
   }
   return lookup;
@@ -90,6 +91,7 @@ export function transform(
       email: out.email ?? "",
       name: out.name ?? "",
       country: out.country ?? "",
+      status: out.status ?? "",
     });
     before.push(row);
   });

@@ -1,14 +1,53 @@
-Email,Customer Name,Country
-jisoo@example.com,김지수,한국
-minho@example.com,이민호,대한민국
-sarah@example.com,Sarah Kim,United States
-taro@example.com,타로,일본
-park@example.com,박오타,한꾹
-ghost@example.com,,한국
-unknown1@example.com,정체불명,韓國
-hans@example.com,김독일,독일
-klaus@example.com,박독일,독일
-mars@example.com,페렛주인,Mars
-bademail,잘못된이메일,한국
-jisoo@example.com,김지수중복,한국
-noco@example.com,노컨트리,
+Email,Customer Name,Country,Status
+user01@example.com,김유나,대한민국,active
+user02@example.com,이민서,United States,active
+user03@example.com,박동욱,Japan,active
+user04@example.com,최채원,한국,verified
+user05@example.com,정서연,미국,subscribed
+user06@example.com,강다혜,일본,pending
+user07@example.com,조규원,China,active
+user08@example.com,윤건우,KR,unsubscribed
+user09@example.com,장현준,US,inactive
+user10@example.com,임시은,중국,active
+user11@example.com,한재현,대한민국,active
+user12@example.com,오서준,United States,active
+user13@example.com,서연우,Japan,active
+user14@example.com,신도원,한국,verified
+user15@example.com,권현우,미국,subscribed
+user16@example.com,황지우,일본,pending
+user17@example.com,안지호,China,active
+user18@example.com,송지훈,KR,unsubscribed
+user19@example.com,전태민,US,inactive
+user20@example.com,홍은채,중국,active
+user21@example.com,고하준,대한민국,active
+user22@example.com,문민준,United States,active
+user23@example.com,손준우,Japan,active
+user24@example.com,배수지,한국,verified
+user25@example.com,백예린,미국,subscribed
+user26@example.com,허지아,일본,pending
+user27@example.com,유하은,China,active
+user28@example.com,남아름,KR,unsubscribed
+user29@example.com,심민희,US,inactive
+user30@example.com,노수아,중국,active
+user31@example.com,김유나,대한민국,active
+user32@example.com,이민서,United States,active
+user33@example.com,박동욱,Japan,active
+user34@example.com,최채원,한국,verified
+user35@example.com,정서연,미국,subscribed
+user36@example.com,강다혜,일본,pending
+user37@example.com,조규원,China,active
+user38@example.com,윤건우,KR,unsubscribed
+user39@example.com,장현준,US,inactive
+user40@example.com,임시은,중국,active
+user41@example.com,한재현,대한민국,active
+user42@example.com,오서준,United States,active
+user43@example.com,서연우,Japan,active
+user44@example.com,신도원,한국,verified
+user45@example.com,권현우,미국,subscribed
+typo01@example.com,박오타,한꾹,active
+germany01@example.com,김독일,독일,active
+noname01@example.com,,한국,pending
+bademail1,잘못된이메일1,한국,active
+bademail2,잘못된이메일2,미국,active
+user01@example.com,중복유저,한국,active
+,빈이메일,일본,active
