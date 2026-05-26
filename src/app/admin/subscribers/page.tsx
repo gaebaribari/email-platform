@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import { Search, Trash2, Download, CheckCircle, XCircle } from "lucide-react";
 import { ImportButton } from "@/components/import-button";
+import {
+  DEMO_MODE,
+  getDemoSubscribers,
+  deleteDemoSubscriber,
+} from "@/lib/demo-store";
 import type { Subscriber, EmailList } from "@/lib/types";
 
 // Brevo Contacts 기준 — 인증 전 구독자(pending)는 Brevo에 존재하지 않으므로 status는 두 가지뿐.
@@ -19,6 +24,19 @@ export default function SubscribersPage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   const fetchData = async () => {
+    if (DEMO_MODE) {
+      let list = getDemoSubscribers();
+      if (statusFilter) list = list.filter((s) => s.status === statusFilter);
+      if (search) {
+        const q = search.toLowerCase();
+        list = list.filter((s) =>
+          `${s.email} ${s.name}`.toLowerCase().includes(q)
+        );
+      }
+      setSubscribers(list);
+      setLists([]);
+      return;
+    }
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (listFilter) params.set("list_id", listFilter);
@@ -37,6 +55,11 @@ export default function SubscribersPage() {
   }, [search, listFilter, statusFilter]);
 
   const handleDelete = async (id: number) => {
+    if (DEMO_MODE) {
+      deleteDemoSubscriber(id);
+      fetchData();
+      return;
+    }
     await fetch("/api/subscribers", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

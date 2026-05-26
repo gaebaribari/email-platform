@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 // 공개 데모에선 방문자가 실제 Brevo 계정을 오염시키지 못하도록 쓰기를 시뮬레이션한다.
 // (읽기는 그대로 실데이터. 로컬/실운영에선 DEMO_MODE 미설정 → 실제 적재.)
-const DEMO_MODE = process.env.DEMO_MODE === "true";
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 // 정규화한 country 를 Brevo Contact 속성으로 보존하기 위해 COUNTRY 속성을 보장한다.
 let _countryEnsured = false;

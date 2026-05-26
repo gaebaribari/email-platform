@@ -43,19 +43,27 @@ export function transform(
   rows.forEach((row, rowIndex) => {
     const out: Record<string, string> = {};
 
+    // 컬럼명을 대소문자·공백 무시로 찾을 수 있게 정규화 인덱스를 만든다.
+    // (원천마다 Email/email/EMAIL 처럼 표기가 달라도 같은 컬럼으로 인식)
+    const lower: Record<string, string> = {};
+    for (const key of Object.keys(row)) {
+      lower[key.trim().toLowerCase()] = row[key];
+    }
+    const get = (col: string) => (lower[col.trim().toLowerCase()] ?? "").trim();
+
     for (const [field, rule] of Object.entries(config.fields)) {
       let value = "";
 
       if (rule.join) {
         // 여러 컬럼을 공백으로 결합 (예: First + Last → name)
         value = rule.join
-          .map((col) => (row[col] ?? "").trim())
+          .map((col) => get(col))
           .filter(Boolean)
           .join(" ");
       } else if (rule.from) {
         // 별칭 후보 중 처음으로 값이 있는 컬럼 채택
         for (const col of rule.from) {
-          const v = (row[col] ?? "").trim();
+          const v = get(col);
           if (v) {
             value = v;
             break;

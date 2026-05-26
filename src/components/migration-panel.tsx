@@ -17,6 +17,7 @@ import type {
   RejectedRecord,
   TargetRecord,
 } from "@/lib/migration/types";
+import { DEMO_MODE, addDemoSubscribers, deleteDemoByEmails } from "@/lib/demo-store";
 
 interface ParsedInput {
   rows: Array<Record<string, string>>;
@@ -211,6 +212,15 @@ function ResultCard({
     setMsg("");
     setIsError(false);
     try {
+      if (DEMO_MODE) {
+        // 데모: Brevo 대신 브라우저(localStorage)에 추가 (일부는 수신거부로 섞임)
+        const n = addDemoSubscribers(records);
+        setDone(true);
+        setCommittedEmails(records.map((r) => r.email));
+        setMsg(`${n}명을 추가했어요`);
+        if (onAdded) setTimeout(onAdded, 900);
+        return;
+      }
       const res = await fetch("/api/migration/commit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,17 +230,12 @@ function ResultCard({
       if (!res.ok) throw new Error(data.error ?? "추가에 실패했어요");
       setDone(true);
       setCommittedEmails(records.map((r) => r.email));
-      if (data.demo) {
-        // 공개 데모 — 실제로 저장하지 않음. 닫지 않고 안내만 남긴다.
-        setMsg(`${data.added}명 추가됨 (데모 모드 — 실제로 저장되지 않아요)`);
-      } else {
-        const dup = data.duplicates
-          ? ` (이미 있던 ${data.duplicates}명은 정보가 갱신됐어요)`
-          : "";
-        setMsg(`${data.added}명을 추가했어요${dup}`);
-        // 성공 메시지를 잠깐 보여준 뒤 모달을 닫고 목록을 새로고침한다.
-        if (onAdded) setTimeout(onAdded, 900);
-      }
+      const dup = data.duplicates
+        ? ` (이미 있던 ${data.duplicates}명은 정보가 갱신됐어요)`
+        : "";
+      setMsg(`${data.added}명을 추가했어요${dup}`);
+      // 성공 메시지를 잠깐 보여준 뒤 모달을 닫고 목록을 새로고침한다.
+      if (onAdded) setTimeout(onAdded, 900);
     } catch (e) {
       setIsError(true);
       setMsg(e instanceof Error ? e.message : String(e));
@@ -244,6 +249,14 @@ function ResultCard({
     setMsg("");
     setIsError(false);
     try {
+      if (DEMO_MODE) {
+        deleteDemoByEmails(committedEmails);
+        const n = committedEmails.length;
+        setDone(false);
+        setCommittedEmails([]);
+        setMsg(`${n}명을 되돌렸어요`);
+        return;
+      }
       const res = await fetch("/api/migration/commit", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },

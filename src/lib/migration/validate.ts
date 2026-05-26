@@ -19,8 +19,11 @@ export function preValidate(
   headers: string[],
   requiredColumns: string[]
 ): PreResult {
-  const present = new Set(headers.map((h) => h.trim()));
-  const missing = requiredColumns.filter((c) => !present.has(c));
+  // 대소문자·공백 무시로 필수 컬럼 존재 여부를 본다.
+  const present = new Set(headers.map((h) => h.trim().toLowerCase()));
+  const missing = requiredColumns.filter(
+    (c) => !present.has(c.trim().toLowerCase())
+  );
   return {
     ok: missing.length === 0,
     missingColumns: missing,

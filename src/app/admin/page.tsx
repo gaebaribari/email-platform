@@ -10,6 +10,11 @@ import {
   Download,
 } from "lucide-react";
 import { ImportButton } from "@/components/import-button";
+import {
+  DEMO_MODE,
+  getDemoSubscribers,
+  deleteDemoSubscriber,
+} from "@/lib/demo-store";
 import type { Subscriber } from "@/lib/types";
 
 const STATUS_CONFIG: Record<
@@ -34,6 +39,18 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState("");
 
   const fetchData = async () => {
+    if (DEMO_MODE) {
+      let list = getDemoSubscribers();
+      if (statusFilter) list = list.filter((s) => s.status === statusFilter);
+      if (search) {
+        const q = search.toLowerCase();
+        list = list.filter((s) =>
+          `${s.email} ${s.name}`.toLowerCase().includes(q)
+        );
+      }
+      setSubscribers(list);
+      return;
+    }
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (statusFilter) params.set("status", statusFilter);
@@ -48,6 +65,11 @@ export default function AdminDashboard() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("이 구독자를 삭제하시겠습니까?")) return;
+    if (DEMO_MODE) {
+      deleteDemoSubscriber(id);
+      fetchData();
+      return;
+    }
     await fetch("/api/subscribers", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

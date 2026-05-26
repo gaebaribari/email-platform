@@ -19,9 +19,9 @@ required_columns:
 #   normalize : 아래 normalize 사전을 적용해 표준값으로 변환
 fields:
   email:
-    from: [Email, "E-mail", 이메일]
+    from: [Email, "E-mail", 이메일, mail]
   name:
-    from: ["Customer Name", 고객명, 이름]
+    from: ["Customer Name", 고객명, 이름, name, "Full Name", FullName]
   country:
     from: [Country, 국가, 거주국]
     normalize: country
