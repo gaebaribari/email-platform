@@ -22,10 +22,12 @@ export default function SubscribersPage() {
   const [search, setSearch] = useState("");
   const [listFilter, setListFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const fetchData = async () => {
+    let list: Subscriber[];
     if (DEMO_MODE) {
-      let list = getDemoSubscribers();
+      list = getDemoSubscribers();
       if (statusFilter) list = list.filter((s) => s.status === statusFilter);
       if (search) {
         const q = search.toLowerCase();
@@ -33,21 +35,26 @@ export default function SubscribersPage() {
           `${s.email} ${s.name}`.toLowerCase().includes(q)
         );
       }
-      setSubscribers(list);
       setLists([]);
-      return;
-    }
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (listFilter) params.set("list_id", listFilter);
-    if (statusFilter) params.set("status", statusFilter);
+    } else {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (listFilter) params.set("list_id", listFilter);
+      if (statusFilter) params.set("status", statusFilter);
 
-    const [subsRes, listsRes] = await Promise.all([
-      fetch(`/api/subscribers?${params}`),
-      fetch("/api/lists"),
-    ]);
-    if (subsRes.ok) setSubscribers(await subsRes.json());
-    if (listsRes.ok) setLists(await listsRes.json());
+      const [subsRes, listsRes] = await Promise.all([
+        fetch(`/api/subscribers?${params}`),
+        fetch("/api/lists"),
+      ]);
+      list = subsRes.ok ? await subsRes.json() : [];
+      if (listsRes.ok) setLists(await listsRes.json());
+    }
+    // 최근 추가된 구독자가 위로 오도록 정렬
+    list = [...list].sort((a, b) =>
+      (b.subscribed_at || "").localeCompare(a.subscribed_at || "")
+    );
+    setSubscribers(list);
+    setSelected(new Set());
   };
 
   useEffect(() => {
@@ -65,6 +72,37 @@ export default function SubscribersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
+    fetchData();
+  };
+
+  const toggleSelect = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const allSelected =
+    subscribers.length > 0 && subscribers.every((s) => selected.has(s.id));
+
+  const toggleSelectAll = () =>
+    setSelected(allSelected ? new Set() : new Set(subscribers.map((s) => s.id)));
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`선택한 ${selected.size}명을 삭제하시겠습니까?`)) return;
+    const ids = [...selected];
+    if (DEMO_MODE) {
+      ids.forEach(deleteDemoSubscriber);
+    } else {
+      for (const id of ids) {
+        await fetch("/api/subscribers", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+      }
+    }
     fetchData();
   };
 
@@ -98,6 +136,15 @@ export default function SubscribersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-destructive/30 text-destructive text-sm rounded-md hover:bg-destructive/10"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              선택 삭제 ({selected.size})
+            </button>
+          )}
           <ImportButton onComplete={fetchData} />
           <button
             onClick={handleExport}
@@ -154,6 +201,14 @@ export default function SubscribersPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
+                <th className="w-10 px-4 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 accent-primary cursor-pointer align-middle"
+                  />
+                </th>
                 <th className="text-left px-4 py-2.5 font-medium text-xs text-muted-foreground">
                   이메일
                 </th>
@@ -181,6 +236,14 @@ export default function SubscribersPage() {
                     key={sub.id}
                     className="border-t border-border hover:bg-muted/20"
                   >
+                    <td className="px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(sub.id)}
+                        onChange={() => toggleSelect(sub.id)}
+                        className="w-4 h-4 accent-primary cursor-pointer align-middle"
+                      />
+                    </td>
                     <td className="px-4 py-2.5 font-medium">{sub.email}</td>
                     <td className="px-4 py-2.5">{sub.name || "-"}</td>
                     <td className="px-4 py-2.5 text-xs">
