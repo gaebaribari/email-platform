@@ -6,8 +6,8 @@ name: mailchimp-export
 label: Mailchimp Export
 description: 타 뉴스레터 툴 audience export. 이름이 First/Last 분리, 잡(junk) 컬럼 혼재.
 
-required_columns:
-  - Email Address
+required_fields:
+  - email
 
 fields:
   email:

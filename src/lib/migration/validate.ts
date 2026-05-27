@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   RejectedRecord,
   Reconciliation,
+  SourceConfig,
   TargetRecord,
 } from "./types";
 
@@ -15,22 +16,23 @@ export interface PreResult {
   detail: string;
 }
 
-export function preValidate(
-  headers: string[],
-  requiredColumns: string[]
-): PreResult {
-  // 대소문자·공백 무시로 필수 컬럼 존재 여부를 본다.
+export function preValidate(headers: string[], config: SourceConfig): PreResult {
+  // 대소문자·공백 무시로 헤더 존재 여부를 본다.
   const present = new Set(headers.map((h) => h.trim().toLowerCase()));
-  const missing = requiredColumns.filter(
-    (c) => !present.has(c.trim().toLowerCase())
-  );
+  // 필수 "필드"가 매핑 가능한지 검사 — from/join 후보 중 하나라도 헤더에 있으면 OK.
+  // (특정 영문 컬럼명이 아니라 이메일/Email/이메일 등 어떤 표기든 잡아낸다)
+  const missing = (config.required_fields ?? []).filter((field) => {
+    const rule = config.fields[field];
+    const candidates = [...(rule?.from ?? []), ...(rule?.join ?? [])];
+    return !candidates.some((c) => present.has(c.trim().toLowerCase()));
+  });
   return {
     ok: missing.length === 0,
     missingColumns: missing,
     detail:
       missing.length === 0
-        ? `필수 컬럼 ${requiredColumns.length}개 모두 존재`
-        : `필수 컬럼 누락: ${missing.join(", ")}`,
+        ? `필수 항목 매핑 가능`
+        : `필수 항목을 찾지 못함: ${missing.join(", ")}`,
   };
 }
 

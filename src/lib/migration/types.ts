@@ -24,7 +24,9 @@ export interface SourceConfig {
   name: string;
   label: string;
   description: string;
-  required_columns: string[];
+  // 반드시 매핑돼야 하는 "필드"명(예: email). 특정 컬럼명이 아니라
+  // 해당 필드의 from/join 후보 중 하나라도 헤더에 있으면 통과한다.
+  required_fields: string[];
   fields: Record<string, FieldRule>;
   normalize?: Record<string, NormalizeDict>;
 }

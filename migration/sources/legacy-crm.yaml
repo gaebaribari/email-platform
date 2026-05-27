@@ -10,9 +10,10 @@ name: legacy-crm
 label: 구(舊) 사내 CRM
 description: 2019년 폐기된 사내 CRM의 고객 export. 컬럼명 영·한 혼용, 국가 자유입력.
 
-# pre-validation: 원천에 반드시 존재해야 하는 컬럼. 없으면 변환 전에 중단한다.
-required_columns:
-  - Email
+# pre-validation: 반드시 매핑돼야 하는 필드. (특정 컬럼명이 아니라 email 필드의
+# 후보 컬럼 중 하나라도 있으면 통과 — Email/email/이메일 등 어떤 표기든 OK)
+required_fields:
+  - email
 
 # 컬럼 매핑: 타깃 필드 <- 원천 컬럼
 #   from      : 나열한 컬럼 중 처음으로 값이 있는 컬럼을 채택 (별칭 흡수)

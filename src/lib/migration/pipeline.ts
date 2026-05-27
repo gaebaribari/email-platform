@@ -49,7 +49,7 @@ export function runPipeline(
   }
 
   // ── pre ──
-  const pre = preValidate(headers, config.required_columns ?? []);
+  const pre = preValidate(headers, config);
   stages.push({
     stage: "pre",
     label: "사전 검증 (원천 구조)",
