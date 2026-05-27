@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { addDemoSubscribers } from "@/lib/demo-store";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
@@ -22,6 +23,12 @@ function VerifyContent() {
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) {
+          // 데모 모드: 인증된 구독자를 이 브라우저의 데모 목록(localStorage)에 추가
+          if (data.demo) {
+            addDemoSubscribers([
+              { email: data.email, name: data.name, status: "verified" },
+            ]);
+          }
           setStatus("success");
           setMessage("이메일 인증이 완료되었습니다!");
           // 같은 브라우저의 다른 탭(폼 페이지)에 인증 완료 신호 전달

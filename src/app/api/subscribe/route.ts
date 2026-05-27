@@ -71,6 +71,17 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // 데모 모드: Brevo에 쓰지 않고, 페이로드를 돌려줘 클라이언트가 localStorage에 담게 한다.
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+    return Response.json({
+      ok: true,
+      demo: true,
+      email: payload.email,
+      name: payload.name,
+      message: "이메일 인증이 완료되었습니다",
+    });
+  }
+
   try {
     await ensureAttributes();
     const brevo = getBrevo();
